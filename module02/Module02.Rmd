@@ -1,0 +1,47 @@
+---
+title: "Module02"
+author: "Violet Lingenfelter"
+date: "January 25, 2019"
+output: rmarkdown::github_document
+---
+
+## Data Structure
+
+This data came to me in the form of a shapefile, meaning there are geometries (land parcels) associated with rows in attribute tables. The main core of the data can be found in the assessor data table. The assessor data table contains information about:
+
+* building value, land value, other value, and total value
+* use code and zoning information
+* lot size
+* last list date and list price
+* owner name and contact information
+* information about the residence (if applicable)
+
+All information is referenced to the PROP_ID or LOC_ID attributes, which each attribute table and the geometries all have. 
+
+```{r}
+# import packages for reading .gdb
+require(rgdal)
+require(sf)
+
+gdb <- "~/Downloads/M248_parcels_gdb/M248_parcels_sde.gdb"
+
+# List all feature classes in a file geodatabase
+subset(ogrDrivers(), grepl("GDB", name))
+fc_list <- ogrListLayers(gdb)
+# print(fc_list) <<< this would print the names of associated layers, if I needed to see that 
+
+# Read the feature class
+fc <- readOGR(dsn=gdb, layer="M248TaxPar") 
+
+# read the assessor database file 
+# (no geometries associated, error is thrown and it turns the .dbf into a dataframe)
+# sort the assessor values by total combined parcel value
+assessor <- sf::st_read(dsn = gdb, layer = "M248Assess")
+
+# Duplicate Geoms = true becaus multiple Assessor data points have same LOC_ID (to be fixed later)
+fc <- merge(fc, assessor, by="LOC_ID", duplicateGeoms=TRUE)
+
+# View the feature class (make sure the geometries match the boundaries of Revere MA)
+plot(fc, main="REVERE, MA", lwd=0.075)
+```
+
