@@ -1,13 +1,14 @@
 # Big Data for Cities
 
-Work from PPUA 5262 (Big Data for Cities) at Northeastern University
+Work from PPUA 5262 (Big Data for Cities) at Northeastern University.
 
 ## Download Guide
+
+The data can be downloaded at [MassGIS](http://massgis.maps.arcgis.com/apps/View/index.html?appid=4d99822d17b9457bb32d7f953ca08416).
 
 Loading required packages - If you haven't downloaded this package yet, then go to the console pane in R and type: install.packages("sf") and then run this code
 
 ```
-#For importing and extracting data set from geodatabase
 library(sf)
 ```
 
