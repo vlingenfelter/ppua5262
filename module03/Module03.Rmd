@@ -1,0 +1,47 @@
+---
+title: "Module03"
+author: "Violet Lingenfelter"
+date: "January 28, 2019"
+output: rmarkdown::github_document
+---
+
+```{r}
+# SET UP
+# ---------
+
+# requre packages
+require(ggplot2)
+
+# load data from CSV
+# this is the .dbf file from the geodatabase from module01 & 02 converted to csv
+assessor <- read.csv("../assessor.csv")
+```
+
+## General Questions for later:
+
+1. When is building area not equal to residence area? 
+2. What are the codes for stories actually saying?
+3. What are `CAMA_ID` and `REG_ID`??
+
+### Things to fix later:
+ - Capitalization for `OWN_CITY`
+ - Default value for `OWN_CO`
+ - Dates in `LS_DATE`
+ 
+
+```{r}
+# INITAL IDEAS
+# ---------
+
+# see value per square mile (?? check units)
+assessor$VAL_PER_LOT <- assessor$TOTAL_VAL / assessor$LOT_SIZE
+# see value of land and lot size compared (?? check units)
+# potentially geographically correlated, look into later
+assessor$LAND_VAL_PER_LOT <- assessor$LAND_VAL / assessor$LOT_SIZE
+# look into value per sq ft of buildings (?? check units)
+# this is potentially more interesting in single family homes
+assessor$BLDG_VAL_PER_AREA <- assessor$BLDG_VAL / assessor$BLD_AREA
+```
+
+
+
