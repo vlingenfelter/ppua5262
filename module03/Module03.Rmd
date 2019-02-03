@@ -5,42 +5,95 @@ date: "January 28, 2019"
 output: rmarkdown::github_document
 ---
 
-```{r}
+## Data Structure
+
+This data came to me in the form of a shapefile, meaning there are geometries (land parcels) associated with rows in attribute tables. The main core of the data can be found in the assessor data table. The assessor data table contains information about:
+
+* building value, land value, other value, and total value
+* use code and zoning information
+* lot size
+* last list date and list price
+* owner name and contact information
+* information about the residence (if applicable)
+
+All information is referenced to the `PROP_ID` or `LOC_ID` attributes, which each attribute table and the geometries all have. 
+
+```{r warning=FALSE, message=FALSE}
 # SET UP
 # ---------
 
 # requre packages
 require(ggplot2)
+require(stringr)
 
 # load data from CSV
 # this is the .dbf file from the geodatabase from module01 & 02 converted to csv
 assessor <- read.csv("../assessor.csv")
 ```
 
-## General Questions for later:
+## Fixing Capitalization for `OWN_CITY` & Finding locally owned parcels
 
-1. When is building area not equal to residence area? 
-2. What are the codes for stories actually saying?
-3. What are `CAMA_ID` and `REG_ID`??
+All city names should be set to be all caps, but the raw data we downloaded is not this way. We can use R to clean up the data a little bit so that we can sort parcel ownership by city of residence of the owner. This is useful for looking at how many Revere residents own parcels, and if there are areas of the city where there is more density of resident ownership. 
 
-### Things to fix later:
- - Capitalization for `OWN_CITY`
- - Default value for `OWN_CO`
- - Dates in `LS_DATE`
- 
+It is also interesting to see how many parcels are owned by people who live in (or at least receive mail in) the City of Revere. We could do this by looking at owner full addresses, looking at owner zip codes, or by seeing if the owner's city is equal to `REVERE`. Since we just cleaned up the names of owner cities, I chose to use the latter method and check against city name. 
 
-```{r}
-# INITAL IDEAS
+```{r warning=FALSE, message=FALSE}
+# CLEANING UP SOME VARIABLES
+# --------------------------
+
+# fix all capitalization for OWN_CITY so that Revere -> REVERE
+# this is useful for making categories later
+assessor$OWN_CITY <- str_to_upper(assessor$OWN_CITY)
+
+# find all parcels that are owned by locals 
+# later: find all parcels owned by people in suffolk county (?)
+assessor$REVERE_OWNED <- str_detect(assessor$OWN_CITY, "REVERE")
+```
+
+## Looking at value over area
+
+Normalizing the values of properties over the area that they occupy can be useful for comparing parcels to each other. This gives us a more uniform method of comparison. Because I'm not sure what type of analysis I will be doing in the future, I chose to calculate value per lot size, land value per lot size, and building value per building area.
+
+```{r warning=FALSE, message=FALSE}
+# CALCULATING VALUES PER AREA
 # ---------
 
 # see value per square mile (?? check units)
 assessor$VAL_PER_LOT <- assessor$TOTAL_VAL / assessor$LOT_SIZE
+
 # see value of land and lot size compared (?? check units)
 # potentially geographically correlated, look into later
 assessor$LAND_VAL_PER_LOT <- assessor$LAND_VAL / assessor$LOT_SIZE
+
 # look into value per sq ft of buildings (?? check units)
 # this is potentially more interesting in single family homes
 assessor$BLDG_VAL_PER_AREA <- assessor$BLDG_VAL / assessor$BLD_AREA
+```
+
+## Finding Tax Exempt Properties
+
+It can be useful to see which parcels are paying taxes. This isn't a simple filtering problem given our dataset, because by the land use codes, anything that starts with a "9" is tax exempt. This is a nice opportunity to use Regex (so that we still maintain the "character" type of the variable). 
+
+```{r warning=FALSE, message=FALSE}
+# FIND TAX EXEMPT PROPERTIES
+# --------------------------
+
+# convert USE_CODE from factor type to character type so we can use Regex
+# and search for anything beginning with "9"
+assessor$TAX_EXEMPT <- str_detect(as.character(assessor$USE_CODE), "^9")
+```
+
+## Saving our work
+
+I am choosing to keep csvs for every module separately so that I can review my week to week work. This may prove useful if I decide that I made an error somewhere and want to go back and see which week the error is in. 
+
+```{r warning=FALSE, message=FALSE}
+# SAVE OUR WORK
+# ------------
+
+# write edits from this week to csv in this folder
+# useful for looking at edits from week to week 
+write.csv(assessor, "assessorMod03.csv")
 ```
 
 
