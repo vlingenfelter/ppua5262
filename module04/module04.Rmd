@@ -1,0 +1,167 @@
+---
+title: "Module04"
+author: "Violet Lingenfelter"
+date: "February 10, 2019"
+output: rmarkdown::github_document
+---
+
+## Overview
+
+This document is an introduction to the 2018 Property Parcel Dataset from the State of Massachusetts GIS department. This dataset contains values for all property parcels asessed in Revere, MA. This dataset is a shapefile with associated data tables, which include information about lot size, use code and zoning information, last list date and list price, owner name and contact information, and information about the residence (if applicable). This data was downloaded at  [MassGIS](http://massgis.maps.arcgis.com/apps/View/index.html?appid=4d99822d17b9457bb32d7f953ca08416). Information on which land use codes correspond to land use types came from [Land Use Codes](https://www.mass.gov/files/documents/2016/08/wr/classificationcodebook.pdf), per the MassGIS website. 
+
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+# SET UP
+# ---------
+
+# requre packages
+require(ggplot2)
+require(stringr)
+
+# load data from CSV
+# this is the .dbf file from the geodatabase from module01 & 02 converted to csv
+assessor <- read.csv("../assessor.csv")
+
+# CLEANING UP SOME VARIABLES
+# --------------------------
+
+# fix all capitalization for OWN_CITY so that Revere -> REVERE
+# this is useful for making categories later
+assessor$OWN_CITY <- str_to_upper(assessor$OWN_CITY)
+
+# find all parcels that are owned by locals 
+# later: find all parcels owned by people in suffolk county (?)
+assessor$REVERE_OWNED <- str_detect(assessor$OWN_CITY, "REVERE")
+
+# find all parcels that are owned by MassHoles
+assessor$MA_OWNED <- str_detect(assessor$OWN_STATE, "MA")
+
+assessor$BOSTON_OWNED <- str_detect(assessor$OWN_CITY, "REVERE") | str_detect(assessor$OWN_CITY, "BOSTON") | str_detect(assessor$OWN_CITY, "CHELSEA")
+
+assessor$LLC_OWNED <- str_detect(assessor$OWNER1, "LLC") | str_detect(assessor$OWNER1, "L.L.C")
+
+numberLLCParcels <- data.frame(table(assessor$LLC_OWNED))[,"Freq"][2]
+
+percentLLCParcels <- (numberLLCParcels/NROW(assessor)) * 100
+
+LLCparcels <- assessor[assessor$LLC_OWNED == TRUE,]
+LLCvalue <- sum(LLCparcels$TOTAL_VAL)
+total_val <- sum(as.numeric(assessor$TOTAL_VAL))
+
+percLLCValue <- (LLCvalue / total_val) * 100
+
+# CALCULATING VALUES PER AREA
+# ---------
+
+# see value per square mile (?? check units)
+assessor$VAL_PER_LOT <- assessor$TOTAL_VAL / assessor$LOT_SIZE
+
+# see value of land and lot size compared (?? check units)
+# potentially geographically correlated, look into later
+assessor$LAND_VAL_PER_LOT <- assessor$LAND_VAL / assessor$LOT_SIZE
+
+# look into value per sq ft of buildings (?? check units)
+# this is potentially more interesting in single family homes
+assessor$BLDG_VAL_PER_AREA <- assessor$BLDG_VAL / assessor$BLD_AREA
+
+# FIND TAX EXEMPT PROPERTIES
+# --------------------------
+
+# convert USE_CODE from factor type to character type so we can use Regex
+# and search for anything beginning with "9"
+assessor$TAX_EXEMPT <- str_detect(as.character(assessor$USE_CODE), "^9")
+```
+
+## Mildy Interesting Facts
+
+```{r warning=FALSE, message=FALSE, echo=FALSE}
+streets <- data.frame(table(assessor$FULL_STR))
+streets <- streets[order(-streets$Freq),]
+streetWithMostParcels <- streets[1, "Var1"]
+
+#  OUT OF STATE PARCEL OWNERSHIP
+# =================================
+ownStates <- data.frame(table(assessor$OWN_STATE))
+
+# correct the column names
+names(ownStates) <- c('STATE', 'FREQ')
+# sort by number of owners from state (high value to low value)
+ownStates <- ownStates[order(ownStates$FREQ),]
+numberOfParcels <- sum(ownStates$FREQ)
+massOwnedNumber <- ownStates[ownStates$STATE == "MA","FREQ"] 
+# remove MA to look only at out of state ownership
+ownStates <- ownStates[ownStates$STATE != "MA",]
+outOfStateNumber <- sum(ownStates$FREQ)
+percentMassOwned <- (massOwnedNumber / numberOfParcels) * 100
+assessor <- assessor[order(-assessor$UNITS),]
+
+
+```
+
+
+ - The street with the most parcels addressed to it is "REVERE BEACH BLVD"
+ - The most valuable parcel in Revere, 9 Overlook Ridge Dr is comprised of 412 units, over 9.87 acres, and is worth more than $70 million. It also has the most units of any parcel in Revere.
+ - The oldest church in Revere, The First Congregational Church, is located at 230 Beach St and was built in 1849. 
+ - More than 97% of parcels in Revere are owned by people or companies with mailing addresses in Massachusetts. 
+ - The most valuable style of single family home in Revere is "Multi-garden" with an average assessed value of $299,200
+ - The non-Massachusetts states with the most parcel ownership are Florida with 72 parcles, Texas with 54, and New Hampshire with 53 parcels. 
+ - 447 parcels are owned by LLCs. These parcels represent 2.95% of parcels in Revere but 11.12% of total parcels in Revere. 
+
+## Visuals
+
+First, let's look at out of state parcel ownership. Out of the 400 parcels that are owned by companies or people that reside out of state, where are these owners? This is pretty easily visualized by a Cleveland dot chart (or in this case a triangle chart). From this we can see how number of parcels are broken out into individual states. We can see that the state with the most parcel ownership is Florida. We can also see that there are some states listed here that aren't in the US. QC, for example, references the Canadian province of Quebec.
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.height=4, fig.width=5}
+# create a cleaveland dot chart
+# make the markers be little triangles
+par(bg = "#e8fff2")
+dotchart(ownStates$FREQ, 
+         labels=ownStates$STATE, 
+         cex=.6,
+         pch=17,
+         main="OUT-OF-STATE OWNED PARCELS",
+         xlab="NUMBER OF PARCELS",
+         col = "#F98866",
+         family = "mono",
+         col.main = "#274F3B",
+         col.lab = "#274F3B",
+         fg = "#80BD9E")
+
+
+#  BUILDING VALUE BY HOME STYLE IN SINGLE FAMILY HOMES
+# =================================
+```
+
+We can do a similar chart to visualize the value of single family homes, broken down by home style. This will be interestering data to accompany a map; we might want to see if single family homes of certain style are concentrated in certain neighborhoods, or are near certain zoning areas (i.e. industrial areas). We can see that the most valuable home style in Revere is Mulit-Garden, and the least valuable is Bungalow.
+
+```{r warning=FALSE, message=FALSE, echo=FALSE, fig.height=4, fig.width=5.5}
+# find subset of parcels with single family homes
+singleFamily <- assessor[assessor$USE_CODE==101,]
+
+# find average building value aggregated by building style for single family homes
+buildingByStyle <- aggregate(singleFamily$BLDG_VAL ~ singleFamily$STYLE, FUN = median)
+# correct the column names
+names(buildingByStyle) <- c('STYLE', 'AVG_BLDG_VAL')
+# sort by building value (high value to low value)
+buildingByStyle <- buildingByStyle[order(-buildingByStyle$AVG_BLDG_VAL),]
+
+# create a cleaveland dot chart of average value by building style
+# make the markers be little triangles
+par(bg = "#e8fff2")
+dotchart(buildingByStyle$AVG_BLDG_VAL, 
+         labels=buildingByStyle$STYLE, 
+         cex=.9,
+         pch=17,
+         main="MEDIAN SINGLE FAMILY HOME VALUE BY STYLE",
+         xlab="AVERAGE VALUE",
+         col = "#F98866",
+         family = "mono",
+         col.main = "#274F3B",
+         col.lab = "#274F3B",
+         fg = "#80BD9E")
+```
+
+
+
+
+
