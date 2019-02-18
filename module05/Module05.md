@@ -1,0 +1,22 @@
+Module05
+================
+Violet Lingenfelter
+February 17, 2019
+
+Latent Construct: Luxury
+------------------------
+
+We want to look at how luxurious a given property is by developing a luxury metric. The ultimate goal with this metric is to look at if parcels are being taxed differently based on this luxury metric, i.e. more luxurious parcels pay higher taxes.
+
+### Ideas for Manifest Variables:
+
+-   Number of rooms taking into account average square footage of room
+-   Style of house related to when it was built
+-   Yard size: how big is the difference between property size and building size?
+-   Age of the home (this is tricky, there needs to be some implied idea about condition)
+-   Nearness to ammenities like certain tax exempt parcels (like schools)
+-   Distance to use codes like "industrial" use
+
+### Things to sort out:
+
+-   We will have to look at different building codes separately
