@@ -81,7 +81,7 @@ plot_grid(plot1, plot2)
 
 
 ```{r regression}
-regression<-lm(LUXURY~TOTAL_VAL+UNITS+RES_AREA, data=luxury)
+regression<-lm(LUXURY~TOTAL_VAL+RES_AREA+LS_PRICE, data=luxury)
 
 
 summary(regression)
@@ -129,11 +129,51 @@ assessor_geo<-assessor_geo[order(assessor_geo$order),]
 ```
 ```{r}
 library(RColorBrewer)
-my_colors = brewer.pal(9, "BrBG") 
+my_colors = brewer.pal(9, "GnBu") 
 my_colors = colorRampPalette(my_colors)(6)
 ggplot() + 
+  theme(
+  panel.background = element_rect(fill = "white",
+                                size = 2, linetype = "solid"),
+  panel.grid.major = element_line(size = 0, linetype = 'solid',
+                                colour = "white"), 
+  panel.grid.minor = element_line(size = 0, linetype = 'solid',
+                                colour = "white")
+  ) +
   geom_polygon(aes(x=long, y=lat, group=group, fill=regression.residuals), data=assessor_geo) +
-  scale_fill_gradientn(colors = my_colors)
+  scale_fill_gradient2(low = "#8B0000", mid ="#f7f7f7",high = "#2166ac", midpoint = 0)
+
+```
+
+
+```{r zoom1, echo=FALSE,warning=FALSE, message=FALSE}
+ggplot(assessor_geo, aes(x = long, y = lat, group = group, fill = regression.residuals)) +
+  theme(
+  panel.background = element_rect(fill = "white",
+                                size = 2, linetype = "solid"),
+  panel.grid.major = element_line(size = 0, linetype = 'solid',
+                                colour = "white"), 
+  panel.grid.minor = element_line(size = 0, linetype = 'solid',
+                                colour = "white")
+  ) +
+    geom_polygon(color="#888888") + 
+    coord_cartesian(ylim=c(909500,910500), xlim=c(243500,244500)) + 
+    scale_fill_gradient2(low = "#8B0000", mid ="#f7f7f7",high = "#2166ac", midpoint = 0)
+
+```
+```{r zoom2, echo=FALSE,warning=FALSE, message=FALSE}
+ggplot(assessor_geo, aes(x = long, y = lat, group = group, fill = regression.residuals)) +
+  theme(
+  panel.background = element_rect(fill = "white",
+                                size = 2, linetype = "solid"),
+  panel.grid.major = element_line(size = 0, linetype = 'solid',
+                                colour = "white"), 
+  panel.grid.minor = element_line(size = 0, linetype = 'solid',
+                                colour = "white")
+  ) +
+    geom_polygon(color="#888888") + 
+    coord_cartesian(ylim=c(909000,911000), xlim=c(239000,241000)) + 
+    scale_fill_gradient2(low = "#8B0000", mid ="#f7f7f7",high = "#2166ac", midpoint = 0)
 
 ```
 

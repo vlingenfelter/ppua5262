@@ -339,7 +339,7 @@ plot_grid(plot1, plot2)
 ![](final_files/figure-markdown_github-ascii_identifiers/plot-1.png)
 
 ``` r
-regression<-lm(LUXURY~TOTAL_VAL+UNITS+RES_AREA, data=luxury)
+regression<-lm(LUXURY~TOTAL_VAL+RES_AREA+LS_PRICE, data=luxury)
 
 
 summary(regression)
@@ -347,25 +347,25 @@ summary(regression)
 
     ## 
     ## Call:
-    ## lm(formula = LUXURY ~ TOTAL_VAL + UNITS + RES_AREA, data = luxury)
+    ## lm(formula = LUXURY ~ TOTAL_VAL + RES_AREA + LS_PRICE, data = luxury)
     ## 
     ## Residuals:
     ##     Min      1Q  Median      3Q     Max 
-    ## -5.2446 -0.7310 -0.0972  0.6014 17.6002 
+    ## -5.2420 -0.7418 -0.1039  0.5990 17.6112 
     ## 
     ## Coefficients:
     ##               Estimate Std. Error t value Pr(>|t|)    
-    ## (Intercept) -3.895e+00  1.578e-01 -24.685  < 2e-16 ***
-    ## TOTAL_VAL    9.760e-06  4.418e-07  22.089  < 2e-16 ***
-    ## UNITS        7.705e-01  1.341e-01   5.746 9.72e-09 ***
-    ## RES_AREA     2.238e-04  4.297e-05   5.207 2.00e-07 ***
+    ## (Intercept) -3.137e+00  8.678e-02 -36.146  < 2e-16 ***
+    ## TOTAL_VAL    9.930e-06  4.486e-07  22.135  < 2e-16 ***
+    ## RES_AREA     2.324e-04  4.308e-05   5.396 7.16e-08 ***
+    ## LS_PRICE    -2.999e-07  1.313e-07  -2.283   0.0225 *  
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 1.233 on 4488 degrees of freedom
+    ## Residual standard error: 1.237 on 4488 degrees of freedom
     ##   (5 observations deleted due to missingness)
-    ## Multiple R-squared:  0.2625, Adjusted R-squared:  0.262 
-    ## F-statistic: 532.5 on 3 and 4488 DF,  p-value: < 2.2e-16
+    ## Multiple R-squared:  0.2579, Adjusted R-squared:  0.2574 
+    ## F-statistic:   520 on 3 and 4488 DF,  p-value: < 2.2e-16
 
 ``` r
 luxury<-merge(luxury,data.frame(regression$residuals),by='row.names',all.x=TRUE)
@@ -470,14 +470,24 @@ assessor_geo<-assessor_geo[order(assessor_geo$order),]
 
 ``` r
 library(RColorBrewer)
-my_colors = brewer.pal(9, "BrBG") 
+my_colors = brewer.pal(9, "GnBu") 
 my_colors = colorRampPalette(my_colors)(6)
 ggplot() + 
+  theme(
+  panel.background = element_rect(fill = "white",
+                                size = 2, linetype = "solid"),
+  panel.grid.major = element_line(size = 0, linetype = 'solid',
+                                colour = "white"), 
+  panel.grid.minor = element_line(size = 0, linetype = 'solid',
+                                colour = "white")
+  ) +
   geom_polygon(aes(x=long, y=lat, group=group, fill=regression.residuals), data=assessor_geo) +
-  scale_fill_gradientn(colors = my_colors)
+  scale_fill_gradient2(low = "#8B0000", mid ="#f7f7f7",high = "#2166ac", midpoint = 0)
 ```
 
 ![](final_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-3-1.png)
+
+![](final_files/figure-markdown_github-ascii_identifiers/zoom1-1.png) ![](final_files/figure-markdown_github-ascii_identifiers/zoom2-1.png)
 
 We can see from this map that there is a little cluster of parcels by the beach where ther is a low number of rooms but potentially high expected value given our regression model. This suggests to me that there is a geographic element that is missing in our model.
 
