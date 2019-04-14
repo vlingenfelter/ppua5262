@@ -1,0 +1,144 @@
+---
+title: "Final"
+author: "Violet Lingenfelter"
+date: "March 22, 2019"
+output: rmarkdown::github_document
+---
+
+```{r cleaning, echo=FALSE, warning=FALSE, message=FALSE}
+# load data from CSV
+# this is the .dbf file from the geodatabase from module01 & 02 converted to csv
+luxury <- read.csv("../single-family-luxury.csv")
+```
+
+## Correlation 
+
+For looking at correlations, I decided calculate a matrix for all variables I might find interesting in a sort of exploratory approach. I included the following variables in my matrix:
+
+ - building, land, and total values
+ - list price
+ - number of rooms
+ - residential area 
+ - building area 
+ 
+This matrix can be seen below. 
+
+```{r correlation, warning=FALSE, message=FALSE}
+
+# import package that we need
+require(Hmisc)
+
+# look at relationships between a TON of columns 
+# columns looked at: building, land, other, and total value, lot size, list price, year built, number of rooms, and residential area size. 
+correlations<-rcorr(as.matrix(luxury[c(5,6,8,12,32,33,36,45)]))
+# class(correlations)
+
+
+require(formattable)
+r <- do.call(rbind.data.frame, correlations[1])
+
+r <- round(r, digits = 3)
+
+# look at r
+r <- formattable(r, list(BLDG_VAL = color_tile("white", "#a3dec9"),
+                    LAND_VAL = color_tile("white", "#a3dec9"),
+                    TOTAL_VAL = color_tile("white", "#a3dec9"),
+                    LS_PRICE = color_tile("white", "#a3dec9"),
+                    UNITS = color_tile("white", "#a3dec9"),
+                    RES_AREA = color_tile("white", "#a3dec9"),
+                    NUM_ROOMS = color_tile("white", "#a3dec9"),
+                    LUXURY = color_tile("white", "#a3dec9")))
+
+r
+```
+
+From looking at this matrix, we can see how correlated some of our variables are with each other. To make this more readily apparent, I chose to highlight each piece of the table based on the value of r. We can see that the least correlated variable to any other variable is LS_PRICE. This means that list prices have little correlation with any of the other variables I chose to include in the matrix. 
+
+An interesting column to look at is the NUM_ROOMS column. We can see that the number of rooms a building on a parcel had has a strong positive correlation with every variable besides LS PRICE. This is interesting because it is not something I expected. 
+
+```{r plot, warning=FALSE, message=FALSE}
+require(ggplot2)
+require(cowplot)
+ 
+# make scatter plot with regression 
+plot1 = ggplot(luxury, aes(x=LUXURY, y=RES_AREA)) +
+  theme_classic() +
+  geom_point(size=2, color="#a3dec9", shape=17) + 
+  geom_smooth(method=lm, color="#499491") +
+  xlab("Luxury") + 
+  ylab("Residential Area")
+
+plot2 = ggplot(luxury, aes(x=LUXURY, y=TOTAL_VAL)) +
+  theme_classic() +
+  geom_point(size=2, color="#a3dec9", shape=17) + 
+  geom_smooth(method=lm, color="#499491") +
+  xlab("Luxury") + 
+  ylab("Total Parcel Value")
+
+plot_grid(plot1, plot2)
+```
+
+
+
+```{r regression}
+regression<-lm(LUXURY~TOTAL_VAL+UNITS+RES_AREA, data=luxury)
+
+
+summary(regression)
+
+luxury<-merge(luxury,data.frame(regression$residuals),by='row.names',all.x=TRUE)
+```
+```{r}
+par(bg = "#e8fff2")
+plot(luxury$LUXURY, luxury$regression.residuals, 
+     ylab="Residuals", 
+     xlab="Luxury", 
+     main="Linear Regression Residuals",
+     pch = 17,
+     col = "#F98866",
+     family = "mono", 
+     col.main = "#274F3B", 
+     col.lab = "#274F3B",
+     fg = "#80BD9E") 
+abline(0, 0) 
+```
+## Regression
+
+We can see from this regression, where we looked at total value, number of units, and residential area as explanatory variables for number of rooms, that our model is okay but missing some variables. We can see that 89% of the variation in number of rooms can be explained by total value, number of units, and residential area. We can map these residuals so as to see if any geographic areas are not explained by this non geographically weighted regression. 
+
+
+```{r map, warning=FALSE, message=FALSE}
+
+require(rgdal)
+require(sp)
+
+gdb <- "../M248_parcels_gdb/M248_parcels_sde.gdb"
+
+assessor_geo<-readOGR(dsn=gdb, layer="M248TaxPar")
+```
+```{r}
+require(ggplot2)
+require(ggmap)
+require(maptools)
+require(rgeos)
+
+assessor_geo<-fortify(assessor_geo, region = "LOC_ID")
+assessor_geo<-merge(assessor_geo,luxury,by.x='id',by.y='LOC_ID',duplicateGeoms=TRUE)
+
+assessor_geo<-assessor_geo[order(assessor_geo$order),]
+```
+```{r}
+library(RColorBrewer)
+my_colors = brewer.pal(9, "BrBG") 
+my_colors = colorRampPalette(my_colors)(6)
+ggplot() + 
+  geom_polygon(aes(x=long, y=lat, group=group, fill=regression.residuals), data=assessor_geo) +
+  scale_fill_gradientn(colors = my_colors)
+
+```
+
+We can see from this map that there is a little cluster of parcels by the beach where ther is a low number of rooms but potentially high expected value given our regression model. This suggests to me that there is a geographic element that is missing in our model. 
+
+## Conclusion
+
+From this exploratory analysis, I conclude that I want to look further into the effect the number of rooms a building has on its value. I think I would like to look at how this relationship changes based on the building code that a parcel is coded under. 
